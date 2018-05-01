@@ -23,8 +23,6 @@
  */
 
 #include "comm_uart.h"
-#include "ch.h"
-#include "hal.h"
 #include "bldc_interface_uart.h"
 
 #include <string.h>
