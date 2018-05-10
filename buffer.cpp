@@ -57,6 +57,18 @@ void buffer_append_float32(uint8_t* buffer, float number, float scale, int32_t *
     buffer_append_int32(buffer, (int32_t)(number * scale), index);
 }
 
+void buffer_append_bool(uint8_t* buffer, bool boolValue, int32_t *index) {
+  switch (boolValue) {
+    case true:
+      buffer[(*index)++] = 1;
+      break;
+
+    case false:
+      buffer[(*index)++] = 0;
+      break;
+  }
+}
+
 int16_t buffer_get_int16(const uint8_t *buffer, int32_t *index) {
 	int16_t res =	((uint16_t) buffer[*index]) << 8 |
 					((uint16_t) buffer[*index + 1]);

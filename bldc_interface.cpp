@@ -730,6 +730,20 @@ void bldc_interface_set_appconf(const app_configuration *appconf) {
 	send_packet_no_fwd(send_buffer, send_index);
 }
 
+void bldc_interface_set_chuck_data(const chuck_data *chuckdata) {
+  int32_t send_index = 0;
+  fwd_can_append(send_buffer, &send_index);
+  send_buffer[send_index++] = COMM_SET_CHUCK_DATA;
+  send_buffer[send_index++] = chuckdata -> js_x;
+  send_buffer[send_index++] = chuckdata -> js_y;
+  buffer_append_bool(send_buffer, chuckdata -> bt_c, &send_index);
+  buffer_append_bool(send_buffer, chuckdata -> bt_z, &send_index);
+  buffer_append_int32(send_buffer, chuckdata -> acc_x, &send_index);
+  buffer_append_int32(send_buffer, chuckdata -> acc_y, &send_index);
+  buffer_append_int32(send_buffer, chuckdata -> acc_z, &send_index);
+  send_packet_no_fwd(send_buffer, send_index);
+}
+
 // Getters
 void bldc_interface_get_fw_version(void) {
 	int32_t send_index = 0;

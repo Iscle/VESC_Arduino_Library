@@ -175,6 +175,16 @@ typedef struct {
 	uint32_t m_encoder_counts;
 } mc_configuration;
 
+typedef struct {
+  int8_t js_x;
+  int8_t js_y;
+  int16_t acc_x;
+  int16_t acc_y;
+  int16_t acc_z;
+  bool bt_c;
+  bool bt_z;
+} chuck_data;
+
 // Applications to use
 typedef enum {
 	APP_NONE = 0,

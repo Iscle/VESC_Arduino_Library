@@ -8,4 +8,19 @@ void VESC_init();
 void VESC_getValues();
 void bldc_val_received(mc_values *val);
 
+// Setters
+void VESC_setDutyCycle(float dutyCycle);
+void VESC_setCurrent(float current);
+void VESC_setCurrentBrake(float current);
+void VESC_setRpm(int rpm);
+void VESC_setPos(float pos);
+void VESC_setServoPos(float pos);
+void VESC_setChuckData(const chuck_data *chuckdata);
+
+// Other functions
+void VESC_sendAlive();
+
+// Helpers
+const char* VESC_faultToString(mc_fault_code fault);
+
 #endif
