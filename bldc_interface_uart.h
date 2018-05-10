@@ -26,6 +26,7 @@
 #define BLDC_INTERFACE_UART_H_
 
 // Includes
+#include "Arduino.h"
 #include "packet.h" // For the MAX_PACKET_LEN define
 
 // Functions

@@ -25,6 +25,7 @@
 #ifndef BUFFER_H_
 #define BUFFER_H_
 
+#include "Arduino.h"
 #include <stdint.h>
 
 void buffer_append_int16(uint8_t* buffer, int16_t number, int32_t *index);

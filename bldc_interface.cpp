@@ -23,6 +23,7 @@
  *
  */
 
+#include "Arduino.h"
 #include "bldc_interface.h"
 #include "buffer.h"
 #include <string.h>

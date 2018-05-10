@@ -18,6 +18,7 @@
 #ifndef BLDC_INTERFACE_H_
 #define BLDC_INTERFACE_H_
 
+#include "Arduino.h"
 #include "datatypes.h"
 
 // interface functions

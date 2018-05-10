@@ -21,6 +21,8 @@
  *  Created on: 26 feb 2012
  *      Author: benjamin
  */
+
+#include "Arduino.h"
 #include "crc.h"
 
 // CRC Table

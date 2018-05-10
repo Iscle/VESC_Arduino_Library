@@ -18,6 +18,7 @@
 #ifndef DATATYPES_H_
 #define DATATYPES_H_
 
+#include "Arduino.h"
 #include <stdint.h>
 #include <stdbool.h>
 

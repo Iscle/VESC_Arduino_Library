@@ -22,6 +22,7 @@
  *      Author: benjamin
  */
 
+#include "Arduino.h"
 #include "buffer.h"
 
 void buffer_append_int16(uint8_t* buffer, int16_t number, int32_t *index) {

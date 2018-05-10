@@ -22,11 +22,9 @@
  *      Author: benjamin
  */
 
+#include "Arduino.h"
 #include "bldc_interface_uart.h"
 #include "bldc_interface.h"
-
-// Settings
-#define PACKET_HANDLER			0
 
 // Private functions
 static void process_packet(unsigned char *data, unsigned int len);
@@ -41,10 +39,11 @@ static void send_packet_bldc_interface(unsigned char *data, unsigned int len);
  */
 void bldc_interface_uart_init(void(*func)(unsigned char *data, unsigned int len)) {
 	// Initialize packet handler
-	packet_init(func, process_packet, PACKET_HANDLER);
+	packet_init(func, process_packet);
 
 	// Initialize the bldc interface and provide a send function
 	bldc_interface_init(send_packet_bldc_interface);
+  bldc_interface_set_forward_can(1);
 }
 
 /**
@@ -55,7 +54,7 @@ void bldc_interface_uart_init(void(*func)(unsigned char *data, unsigned int len)
  * The byte received on the UART to process.
  */
 void bldc_interface_uart_process_byte(unsigned char b) {
-	packet_process_byte(b, PACKET_HANDLER);
+	packet_process_byte(b);
 }
 
 /**
@@ -90,7 +89,5 @@ static void process_packet(unsigned char *data, unsigned int len) {
  */
 static void send_packet_bldc_interface(unsigned char *data, unsigned int len) {
 	// Pass the packet to the packet handler to add checksum, length, start and stop bytes.
-	packet_send_packet(data, len, PACKET_HANDLER);
+	packet_send_packet(data, len);
 }
-
-
