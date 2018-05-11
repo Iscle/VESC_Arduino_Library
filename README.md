@@ -1,8 +1,7 @@
-This is a library for UART communication between the VESC and an Arduino board. Almost the full interface of the VESC is implemented in the library, only firmware upload is missing.  
-  
-Connect D0 (RX) to TX on the VESC  
-Connect D1 (TX) to RX on the VESC  
-Connect the grounds between the Arduino board and the VESC.  
+# VESC_Arduino_Library!
 
-This won't work on ATMEGA328 devices, due to lack of RAM memory.
-Will work on Arduino MEGA 2560 and similar.
+This is a library to control a VESC (or two, via CAN BUS) using an Arduino compatible board. It won't compile for low memory chips like the ATMega328p found in the Nano and Uno boards. It will, however, compile on Mega 2560 and STM32F103 boards, like the BluePill.
+
+## *THIS IS A WORK IN PROGRESS!*
+
+Right now this is a WIP and nothing has been tested. Only the "set" features should work.
