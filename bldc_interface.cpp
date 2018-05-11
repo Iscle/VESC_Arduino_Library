@@ -600,6 +600,14 @@ void bldc_interface_set_pos(float pos) {
 	send_packet_no_fwd(send_buffer, send_index);
 }
 
+void bldc_interface_set_handbrake(float current) {
+	int32_t send_index = 0;
+	fwd_can_append(send_buffer, &send_index);
+	send_buffer[send_index++] = COMM_SET_HANDBRAKE;
+	buffer_append_float32(send_buffer, current, 1e3, &send_index);
+	send_packet_no_fwd(send_buffer, send_index);
+}
+
 void bldc_interface_set_servo_pos(float pos) {
 	int32_t send_index = 0;
 	fwd_can_append(send_buffer, &send_index);
