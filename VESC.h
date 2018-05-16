@@ -6,7 +6,7 @@
 
 void VESC_init();
 void VESC_getValues();
-void bldc_val_received(mc_values *val);
+void VESC_setRxValueFunc(void(*func)(mc_values *values));
 
 // Setters
 void VESC_setDutyCycle(float dutyCycle);

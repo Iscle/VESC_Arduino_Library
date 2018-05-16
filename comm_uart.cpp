@@ -55,29 +55,12 @@ static void rxchar(uint16_t c) {
 	 * processing packets takes a long time.
 	 */
 
-	serial_rx_buffer[serial_rx_write_pos++] = c;
-
-	if (serial_rx_write_pos == SERIAL_RX_BUFFER_SIZE) {
-		serial_rx_write_pos = 0;
-	}
-
-	//chEvtSignalI(process_tp, (eventmask_t) 1); // Envia una senyal de proces
-}
-
-/*
-static THD_FUNCTION(packet_process_thread, arg) {
-
-	process_tp = chThdGetSelfX();
-
-	for(;;) {
-		chEvtWaitAny((eventmask_t) 1); // Rep la senyal de proces de rxchar, i deixa seguir el bucle
-
-		/*
-		 * Wait for data to become available and process it as long as there is data.
-		 */
-/*
-
-	while (serial_rx_read_pos != serial_rx_write_pos) {
+	if (Serial.available() > 0) {
+	    serial_rx_buffer[serial_rx_write_pos++] = Serial.read();
+	    if (serial_rx_write_pos == SERIAL_RX_BUFFER_SIZE) {
+			serial_rx_write_pos = 0;
+		}
+		while (serial_rx_read_pos != serial_rx_write_pos) {
 			bldc_interface_uart_process_byte(serial_rx_buffer[serial_rx_read_pos++]);
 
 			if (serial_rx_read_pos == SERIAL_RX_BUFFER_SIZE) {
@@ -85,8 +68,16 @@ static THD_FUNCTION(packet_process_thread, arg) {
 			}
 		}
 	}
+
+	// Teoricament aixo es per saber si hi ha hagut un timeout 
+	/**
+	 * This thread is only for calling the timer function once
+	 * per millisecond. Can also be implemented using interrupts
+	 * if no RTOS is available.
+	 */
+	bldc_interface_uart_run_timer();
+
 }
-*/
 
 /**
  * Callback that the packet handler uses to send an assembled packet.
@@ -101,11 +92,6 @@ static void send_packet(unsigned char *data, unsigned int len) {
 		return;
 	}
 
-	// Wait for the previous transmission to finish.
-	/*while (UART_DEV.txstate == UART_TX_ACTIVE) {
-		chThdSleep(1);
-	}*/
-
 	// Copy this data to a new buffer in case the provided one is re-used
 	// after this function returns.
 	static uint8_t buffer[PACKET_MAX_PL_LEN + 5];
@@ -113,31 +99,12 @@ static void send_packet(unsigned char *data, unsigned int len) {
 
 	// Send the data over UART
 	Serial1.write(buffer, len);
-	//uartStartSend(&UART_DEV, len, buffer);
-}
-
-/**
- * This thread is only for calling the timer function once
- * per millisecond. Can also be implemented using interrupts
- * if no RTOS is available.
- */
-void uart_timer() {
-
-		bldc_interface_uart_run_timer();
-		//chThdSleepMilliseconds(1); // waits 1 millisecond
 }
 
 void comm_uart_init(void) {
 	// Initialize UART
 	Serial1.begin(UART_BAUDRATE);
-	/*uartStart(&UART_DEV, &uart_cfg);
-	palSetPadMode(UART_TX_PORT, UART_TX_PIN, PAL_MODE_ALTERNATE(UART_GPIO_AF) |
-			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_PULLUP);
-	palSetPadMode(UART_RX_PORT, UART_RX_PIN, PAL_MODE_ALTERNATE(UART_GPIO_AF) |
-			PAL_STM32_OSPEED_HIGHEST |
-			PAL_STM32_PUDR_PULLUP);
-			*/
+
 
 	// Initialize the bldc interface and provide a send function
 	bldc_interface_uart_init(send_packet);

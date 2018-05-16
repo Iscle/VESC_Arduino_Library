@@ -43,7 +43,7 @@ void bldc_interface_uart_init(void(*func)(unsigned char *data, unsigned int len)
 
 	// Initialize the bldc interface and provide a send function
 	bldc_interface_init(send_packet_bldc_interface);
-  bldc_interface_set_forward_can(1);
+  //bldc_interface_set_forward_can(1);
 }
 
 /**
