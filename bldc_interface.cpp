@@ -37,8 +37,6 @@ static mc_values values;
 static int fw_major;
 static int fw_minor;
 static float rotor_pos;
-static mc_configuration mcconf;
-static app_configuration appconf;
 static float detect_cycle_int_limit;
 static float detect_coupling_k;
 static signed char detect_hall_table[8];
@@ -62,15 +60,9 @@ static void(*rx_value_func)(mc_values *values) = 0;
 static void(*rx_printf_func)(char *str) = 0;
 static void(*rx_fw_func)(int major, int minor) = 0;
 static void(*rx_rotor_pos_func)(float pos) = 0;
-static void(*rx_mcconf_func)(mc_configuration *conf) = 0;
-static void(*rx_appconf_func)(app_configuration *conf) = 0;
-static void(*rx_detect_func)(float cycle_int_limit, float coupling_k,
-		const signed char *hall_table, signed char hall_res) = 0;
 static void(*rx_dec_ppm_func)(float val, float ms) = 0;
 static void(*rx_dec_adc_func)(float val, float voltage) = 0;
 static void(*rx_dec_chuk_func)(float val) = 0;
-static void(*rx_mcconf_received_func)(void) = 0;
-static void(*rx_appconf_received_func)(void) = 0;
 
 /**
  * Initialize bldc_interface.
@@ -156,11 +148,6 @@ void bldc_interface_process_packet(unsigned char *data, unsigned int len) {
 		}
 		break;
 
-	case COMM_ERASE_NEW_APP:
-	case COMM_WRITE_NEW_APP_DATA:
-		// TODO
-		break;
-
 	case COMM_GET_VALUES:
 		ind = 0;
 		values.temp_mos = buffer_get_float16(data, 1e1, &ind);
@@ -185,262 +172,6 @@ void bldc_interface_process_packet(unsigned char *data, unsigned int len) {
 			rx_value_func(&values);
 		}
 		break;
-
-	case COMM_PRINT:
-		if (rx_printf_func) {
-			data[len] = '\0';
-			rx_printf_func((char*)data);
-		}
-		break;
-
-	case COMM_SAMPLE_PRINT:
-		// TODO
-		break;
-
-	case COMM_ROTOR_POSITION:
-		ind = 0;
-		rotor_pos = buffer_get_float32(data, 100000.0, &ind);
-
-		if (rx_rotor_pos_func) {
-			rx_rotor_pos_func(rotor_pos);
-		}
-		break;
-
-	case COMM_EXPERIMENT_SAMPLE:
-		// TODO
-		break;
-
-	case COMM_GET_MCCONF:
-	case COMM_GET_MCCONF_DEFAULT:
-		ind = 0;
-		mcconf.pwm_mode = (mc_pwm_mode)data[ind++];
-		mcconf.comm_mode = (mc_comm_mode)data[ind++];
-		mcconf.motor_type = (mc_motor_type)data[ind++];
-		mcconf.sensor_mode = (mc_sensor_mode)data[ind++];
-
-		mcconf.l_current_max = buffer_get_float32_auto(data, &ind);
-		mcconf.l_current_min = buffer_get_float32_auto(data, &ind);
-		mcconf.l_in_current_max = buffer_get_float32_auto(data, &ind);
-		mcconf.l_in_current_min = buffer_get_float32_auto(data, &ind);
-		mcconf.l_abs_current_max = buffer_get_float32_auto(data, &ind);
-		mcconf.l_min_erpm = buffer_get_float32_auto(data, &ind);
-		mcconf.l_max_erpm = buffer_get_float32_auto(data, &ind);
-		mcconf.l_erpm_start = buffer_get_float32_auto(data, &ind);
-		mcconf.l_max_erpm_fbrake = buffer_get_float32_auto(data, &ind);
-		mcconf.l_max_erpm_fbrake_cc = buffer_get_float32_auto(data, &ind);
-		mcconf.l_min_vin = buffer_get_float32_auto(data, &ind);
-		mcconf.l_max_vin = buffer_get_float32_auto(data, &ind);
-		mcconf.l_battery_cut_start = buffer_get_float32_auto(data, &ind);
-		mcconf.l_battery_cut_end = buffer_get_float32_auto(data, &ind);
-		mcconf.l_slow_abs_current = data[ind++];
-		mcconf.l_temp_fet_start = buffer_get_float32_auto(data, &ind);
-		mcconf.l_temp_fet_end = buffer_get_float32_auto(data, &ind);
-		mcconf.l_temp_motor_start = buffer_get_float32_auto(data, &ind);
-		mcconf.l_temp_motor_end = buffer_get_float32_auto(data, &ind);
-		mcconf.l_temp_accel_dec = buffer_get_float32_auto(data, &ind);
-		mcconf.l_min_duty = buffer_get_float32_auto(data, &ind);
-		mcconf.l_max_duty = buffer_get_float32_auto(data, &ind);
-		mcconf.l_watt_max = buffer_get_float32_auto(data, &ind);
-		mcconf.l_watt_min = buffer_get_float32_auto(data, &ind);
-
-		mcconf.lo_current_max = mcconf.l_current_max;
-		mcconf.lo_current_min = mcconf.l_current_min;
-		mcconf.lo_in_current_max = mcconf.l_in_current_max;
-		mcconf.lo_in_current_min = mcconf.l_in_current_min;
-		mcconf.lo_current_motor_max_now = mcconf.l_current_max;
-		mcconf.lo_current_motor_min_now = mcconf.l_current_min;
-
-		mcconf.sl_min_erpm = buffer_get_float32_auto(data, &ind);
-		mcconf.sl_min_erpm_cycle_int_limit = buffer_get_float32_auto(data, &ind);
-		mcconf.sl_max_fullbreak_current_dir_change = buffer_get_float32_auto(data, &ind);
-		mcconf.sl_cycle_int_limit = buffer_get_float32_auto(data, &ind);
-		mcconf.sl_phase_advance_at_br = buffer_get_float32_auto(data, &ind);
-		mcconf.sl_cycle_int_rpm_br = buffer_get_float32_auto(data, &ind);
-		mcconf.sl_bemf_coupling_k = buffer_get_float32_auto(data, &ind);
-
-		memcpy(mcconf.hall_table, data + ind, 8);
-		ind += 8;
-		mcconf.hall_sl_erpm = buffer_get_float32_auto(data, &ind);
-
-		mcconf.foc_current_kp = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_current_ki = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_f_sw = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_dt_us = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_encoder_inverted = data[ind++];
-		mcconf.foc_encoder_offset = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_encoder_ratio = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_sensor_mode = (mc_foc_sensor_mode)data[ind++];
-		mcconf.foc_pll_kp = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_pll_ki = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_motor_l = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_motor_r = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_motor_flux_linkage = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_observer_gain = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_observer_gain_slow = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_duty_dowmramp_kp = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_duty_dowmramp_ki = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_openloop_rpm = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_sl_openloop_hyst = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_sl_openloop_time = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_sl_d_current_duty = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_sl_d_current_factor = buffer_get_float32_auto(data, &ind);
-		memcpy(mcconf.foc_hall_table, data + ind, 8);
-		ind += 8;
-		mcconf.foc_sl_erpm = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_sample_v0_v7 = data[ind++];
-		mcconf.foc_sample_high_current = data[ind++];
-		mcconf.foc_sat_comp = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_temp_comp = data[ind++];
-		mcconf.foc_temp_comp_base_temp = buffer_get_float32_auto(data, &ind);
-		mcconf.foc_current_filter_const = buffer_get_float32_auto(data, &ind);
-
-		mcconf.s_pid_kp = buffer_get_float32_auto(data, &ind);
-		mcconf.s_pid_ki = buffer_get_float32_auto(data, &ind);
-		mcconf.s_pid_kd = buffer_get_float32_auto(data, &ind);
-		mcconf.s_pid_kd_filter = buffer_get_float32_auto(data, &ind);
-		mcconf.s_pid_min_erpm = buffer_get_float32_auto(data, &ind);
-		mcconf.s_pid_allow_braking = data[ind++];
-
-		mcconf.p_pid_kp = buffer_get_float32_auto(data, &ind);
-		mcconf.p_pid_ki = buffer_get_float32_auto(data, &ind);
-		mcconf.p_pid_kd = buffer_get_float32_auto(data, &ind);
-		mcconf.p_pid_kd_filter = buffer_get_float32_auto(data, &ind);
-		mcconf.p_pid_ang_div = buffer_get_float32_auto(data, &ind);
-
-		mcconf.cc_startup_boost_duty = buffer_get_float32_auto(data, &ind);
-		mcconf.cc_min_current = buffer_get_float32_auto(data, &ind);
-		mcconf.cc_gain = buffer_get_float32_auto(data, &ind);
-		mcconf.cc_ramp_step_max = buffer_get_float32_auto(data, &ind);
-
-		mcconf.m_fault_stop_time_ms = buffer_get_int32(data, &ind);
-		mcconf.m_duty_ramp_step = buffer_get_float32_auto(data, &ind);
-		mcconf.m_current_backoff_gain = buffer_get_float32_auto(data, &ind);
-		mcconf.m_encoder_counts = buffer_get_uint32(data, &ind);
-		mcconf.m_sensor_port_mode = (sensor_port_mode)data[ind++];
-		mcconf.m_invert_direction = data[ind++];
-		mcconf.m_drv8301_oc_mode = (drv8301_oc_mode)data[ind++];
-		mcconf.m_drv8301_oc_adj = data[ind++];
-		mcconf.m_bldc_f_sw_min = buffer_get_float32_auto(data, &ind);
-		mcconf.m_bldc_f_sw_max = buffer_get_float32_auto(data, &ind);
-		mcconf.m_dc_f_sw = buffer_get_float32_auto(data, &ind);
-		mcconf.m_ntc_motor_beta = buffer_get_float32_auto(data, &ind);
-
-		if (rx_mcconf_func) {
-			rx_mcconf_func(&mcconf);
-		}
-		break;
-
-	case COMM_GET_APPCONF:
-	case COMM_GET_APPCONF_DEFAULT:
-		ind = 0;
-		appconf.controller_id = data[ind++];
-		appconf.timeout_msec = buffer_get_uint32(data, &ind);
-		appconf.timeout_brake_current = buffer_get_float32_auto(data, &ind);
-		appconf.send_can_status = data[ind++];
-		appconf.send_can_status_rate_hz = buffer_get_uint16(data, &ind);
-		appconf.can_baud_rate = (CAN_BAUD)data[ind++];
-
-		appconf.app_to_use = (app_use)data[ind++];
-
-		appconf.app_ppm_conf.ctrl_type = (ppm_control_type)data[ind++];
-		appconf.app_ppm_conf.pid_max_erpm = buffer_get_float32_auto(data, &ind);
-		appconf.app_ppm_conf.hyst = buffer_get_float32_auto(data, &ind);
-		appconf.app_ppm_conf.pulse_start = buffer_get_float32_auto(data, &ind);
-		appconf.app_ppm_conf.pulse_end = buffer_get_float32_auto(data, &ind);
-		appconf.app_ppm_conf.pulse_center = buffer_get_float32_auto(data, &ind);
-		appconf.app_ppm_conf.median_filter = data[ind++];
-		appconf.app_ppm_conf.safe_start = data[ind++];
-		appconf.app_ppm_conf.throttle_exp = buffer_get_float32_auto(data, &ind);
-		appconf.app_ppm_conf.throttle_exp_brake = buffer_get_float32_auto(data, &ind);
-		appconf.app_ppm_conf.throttle_exp_mode = (thr_exp_mode)data[ind++];
-		appconf.app_ppm_conf.ramp_time_pos = buffer_get_float32_auto(data, &ind);
-		appconf.app_ppm_conf.ramp_time_neg = buffer_get_float32_auto(data, &ind);
-		appconf.app_ppm_conf.multi_esc = data[ind++];
-		appconf.app_ppm_conf.tc = data[ind++];
-		appconf.app_ppm_conf.tc_max_diff = buffer_get_float32_auto(data, &ind);
-
-		appconf.app_adc_conf.ctrl_type = (adc_control_type)data[ind++];
-		appconf.app_adc_conf.hyst = buffer_get_float32_auto(data, &ind);
-		appconf.app_adc_conf.voltage_start = buffer_get_float32_auto(data, &ind);
-		appconf.app_adc_conf.voltage_end = buffer_get_float32_auto(data, &ind);
-		appconf.app_adc_conf.voltage_center = buffer_get_float32_auto(data, &ind);
-		appconf.app_adc_conf.voltage2_start = buffer_get_float32_auto(data, &ind);
-		appconf.app_adc_conf.voltage2_end = buffer_get_float32_auto(data, &ind);
-		appconf.app_adc_conf.use_filter = data[ind++];
-		appconf.app_adc_conf.safe_start = data[ind++];
-		appconf.app_adc_conf.cc_button_inverted = data[ind++];
-		appconf.app_adc_conf.rev_button_inverted = data[ind++];
-		appconf.app_adc_conf.voltage_inverted = data[ind++];
-		appconf.app_adc_conf.voltage2_inverted = data[ind++];
-		appconf.app_adc_conf.throttle_exp = buffer_get_float32_auto(data, &ind);
-		appconf.app_adc_conf.throttle_exp_brake = buffer_get_float32_auto(data, &ind);
-		appconf.app_adc_conf.throttle_exp_mode = (thr_exp_mode)data[ind++];
-		appconf.app_adc_conf.ramp_time_pos = buffer_get_float32_auto(data, &ind);
-		appconf.app_adc_conf.ramp_time_neg = buffer_get_float32_auto(data, &ind);
-		appconf.app_adc_conf.multi_esc = data[ind++];
-		appconf.app_adc_conf.tc = data[ind++];
-		appconf.app_adc_conf.tc_max_diff = buffer_get_float32_auto(data, &ind);
-		appconf.app_adc_conf.update_rate_hz = buffer_get_uint16(data, &ind);
-
-		appconf.app_uart_baudrate = buffer_get_uint32(data, &ind);
-
-		appconf.app_chuk_conf.ctrl_type = (chuk_control_type)data[ind++];
-		appconf.app_chuk_conf.hyst = buffer_get_float32_auto(data, &ind);
-		appconf.app_chuk_conf.ramp_time_pos = buffer_get_float32_auto(data, &ind);
-		appconf.app_chuk_conf.ramp_time_neg = buffer_get_float32_auto(data, &ind);
-		appconf.app_chuk_conf.stick_erpm_per_s_in_cc = buffer_get_float32_auto(data, &ind);
-		appconf.app_chuk_conf.throttle_exp = buffer_get_float32_auto(data, &ind);
-		appconf.app_chuk_conf.throttle_exp_brake = buffer_get_float32_auto(data, &ind);
-		appconf.app_chuk_conf.throttle_exp_mode = (thr_exp_mode)data[ind++];
-		appconf.app_chuk_conf.multi_esc = data[ind++];
-		appconf.app_chuk_conf.tc = data[ind++];
-		appconf.app_chuk_conf.tc_max_diff = buffer_get_float32_auto(data, &ind);
-
-		appconf.app_nrf_conf.speed = (NRF_SPEED)data[ind++];
-		appconf.app_nrf_conf.power = (NRF_POWER)data[ind++];
-		appconf.app_nrf_conf.crc_type = (NRF_CRC)data[ind++];
-		appconf.app_nrf_conf.retry_delay = (NRF_RETR_DELAY)data[ind++];
-		appconf.app_nrf_conf.retries = data[ind++];
-		appconf.app_nrf_conf.channel = data[ind++];
-		memcpy(appconf.app_nrf_conf.address, data + ind, 3);
-		ind += 3;
-		appconf.app_nrf_conf.send_crc_ack = data[ind++];
-
-		if (rx_appconf_func) {
-			rx_appconf_func(&appconf);
-		}
-		break;
-
-	case COMM_DETECT_MOTOR_PARAM:
-		ind = 0;
-		detect_cycle_int_limit = buffer_get_float32(data, 1000.0, &ind);
-		detect_coupling_k = buffer_get_float32(data, 1000.0, &ind);
-		for (i = 0;i < 8;i++) {
-			detect_hall_table[i] = (const signed char)(data[ind++]);
-		}
-		detect_hall_res = (const signed char)(data[ind++]);
-
-		if (rx_detect_func) {
-			rx_detect_func(detect_cycle_int_limit, detect_coupling_k,
-					detect_hall_table, detect_hall_res);
-		}
-		break;
-
-	case COMM_DETECT_MOTOR_R_L: {
-		// TODO!
-	} break;
-
-	case COMM_DETECT_MOTOR_FLUX_LINKAGE: {
-		// TODO!
-	} break;
-
-	case COMM_DETECT_ENCODER: {
-		// TODO!
-	} break;
-
-	case COMM_DETECT_HALL_FOC: {
-		// TODO!
-	} break;
 
 	case COMM_GET_DECODED_PPM:
 		ind = 0;
@@ -469,20 +200,6 @@ void bldc_interface_process_packet(unsigned char *data, unsigned int len) {
 
 		if (rx_dec_chuk_func) {
 			rx_dec_chuk_func(dec_chuk);
-		}
-		break;
-
-	case COMM_SET_MCCONF:
-		// This is a confirmation that the new mcconf is received.
-		if (rx_mcconf_received_func) {
-			rx_mcconf_received_func();
-		}
-		break;
-
-	case COMM_SET_APPCONF:
-		// This is a confirmation that the new appconf is received.
-		if (rx_appconf_received_func) {
-			rx_appconf_received_func();
 		}
 		break;
 
@@ -516,19 +233,6 @@ void bldc_interface_set_rx_rotor_pos_func(void(*func)(float pos)) {
 	rx_rotor_pos_func = func;
 }
 
-void bldc_interface_set_rx_mcconf_func(void(*func)(mc_configuration *conf)) {
-	rx_mcconf_func = func;
-}
-
-void bldc_interface_set_rx_appconf_func(void(*func)(app_configuration *conf)) {
-	rx_appconf_func = func;
-}
-
-void bldc_interface_set_rx_detect_func(void(*func)(float cycle_int_limit, float coupling_k,
-		const signed char *hall_table, signed char hall_res)) {
-	rx_detect_func = func;
-}
-
 void bldc_interface_set_rx_dec_ppm_func(void(*func)(float val, float ms)) {
 	rx_dec_ppm_func = func;
 }
@@ -539,14 +243,6 @@ void bldc_interface_set_rx_dec_adc_func(void(*func)(float val, float voltage)) {
 
 void bldc_interface_set_rx_dec_chuk_func(void(*func)(float val)) {
 	rx_dec_chuk_func = func;
-}
-
-void bldc_interface_set_rx_mcconf_received_func(void(*func)(void)) {
-	rx_mcconf_received_func = func;
-}
-
-void bldc_interface_set_rx_appconf_received_func(void(*func)(void)) {
-	rx_appconf_received_func = func;
 }
 
 // Setters
@@ -616,199 +312,6 @@ void bldc_interface_set_servo_pos(float pos) {
 	send_packet_no_fwd(send_buffer, send_index);
 }
 
-void bldc_interface_set_mcconf(const mc_configuration *mcconf) {
-	int32_t send_index = 0;
-	fwd_can_append(send_buffer, &send_index);
-	send_buffer[send_index++] = COMM_SET_MCCONF;
-
-	send_buffer[send_index++] = mcconf->pwm_mode;
-	send_buffer[send_index++] = mcconf->comm_mode;
-	send_buffer[send_index++] = mcconf->motor_type;
-	send_buffer[send_index++] = mcconf->sensor_mode;
-
-	buffer_append_float32_auto(send_buffer, mcconf->l_current_max, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_current_min, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_in_current_max, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_in_current_min, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_abs_current_max, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_min_erpm, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_max_erpm, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_erpm_start, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_max_erpm_fbrake, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_max_erpm_fbrake_cc, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_min_vin, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_max_vin, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_battery_cut_start, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_battery_cut_end, &send_index);
-	send_buffer[send_index++] = mcconf->l_slow_abs_current;
-	buffer_append_float32_auto(send_buffer, mcconf->l_temp_fet_start, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_temp_fet_end, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_temp_motor_start, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_temp_motor_end, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_temp_accel_dec, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_min_duty, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_max_duty, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_watt_max, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->l_watt_min, &send_index);
-
-	buffer_append_float32_auto(send_buffer, mcconf->sl_min_erpm, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->sl_min_erpm_cycle_int_limit, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->sl_max_fullbreak_current_dir_change, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->sl_cycle_int_limit, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->sl_phase_advance_at_br, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->sl_cycle_int_rpm_br, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->sl_bemf_coupling_k, &send_index);
-
-	memcpy(send_buffer + send_index, mcconf->hall_table, 8);
-	send_index += 8;
-	buffer_append_float32_auto(send_buffer, mcconf->hall_sl_erpm, &send_index);
-
-	buffer_append_float32_auto(send_buffer, mcconf->foc_current_kp, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_current_ki, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_f_sw, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_dt_us, &send_index);
-	send_buffer[send_index++] = mcconf->foc_encoder_inverted;
-	buffer_append_float32_auto(send_buffer, mcconf->foc_encoder_offset, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_encoder_ratio, &send_index);
-	send_buffer[send_index++] = mcconf->foc_sensor_mode;
-	buffer_append_float32_auto(send_buffer, mcconf->foc_pll_kp, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_pll_ki, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_motor_l, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_motor_r, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_motor_flux_linkage, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_observer_gain, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_observer_gain_slow, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_duty_dowmramp_kp, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_duty_dowmramp_ki, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_openloop_rpm, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_sl_openloop_hyst, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_sl_openloop_time, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_sl_d_current_duty, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_sl_d_current_factor, &send_index);
-	memcpy(send_buffer + send_index, mcconf->foc_hall_table, 8);
-	send_index += 8;
-	buffer_append_float32_auto(send_buffer, mcconf->foc_sl_erpm, &send_index);
-	send_buffer[send_index++] = mcconf->foc_sample_v0_v7;
-	send_buffer[send_index++] = mcconf->foc_sample_high_current;
-	buffer_append_float32_auto(send_buffer, mcconf->foc_sat_comp, &send_index);
-	send_buffer[send_index++] = mcconf->foc_temp_comp;
-	buffer_append_float32_auto(send_buffer, mcconf->foc_temp_comp_base_temp, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->foc_current_filter_const, &send_index);
-
-	buffer_append_float32_auto(send_buffer, mcconf->s_pid_kp, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->s_pid_ki, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->s_pid_kd, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->s_pid_kd_filter, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->s_pid_min_erpm, &send_index);
-	send_buffer[send_index++] = mcconf->s_pid_allow_braking;
-
-	buffer_append_float32_auto(send_buffer, mcconf->p_pid_kp, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->p_pid_ki, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->p_pid_kd, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->p_pid_kd_filter, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->p_pid_ang_div, &send_index);
-
-	buffer_append_float32_auto(send_buffer, mcconf->cc_startup_boost_duty, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->cc_min_current, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->cc_gain, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->cc_ramp_step_max, &send_index);
-
-	buffer_append_int32(send_buffer, mcconf->m_fault_stop_time_ms, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->m_duty_ramp_step, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->m_current_backoff_gain, &send_index);
-	buffer_append_uint32(send_buffer, mcconf->m_encoder_counts, &send_index);
-	send_buffer[send_index++] = mcconf->m_sensor_port_mode;
-	send_buffer[send_index++] = mcconf->m_invert_direction;
-	send_buffer[send_index++] = mcconf->m_drv8301_oc_mode;
-	send_buffer[send_index++] = mcconf->m_drv8301_oc_adj;
-	buffer_append_float32_auto(send_buffer, mcconf->m_bldc_f_sw_min, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->m_bldc_f_sw_max, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->m_dc_f_sw, &send_index);
-	buffer_append_float32_auto(send_buffer, mcconf->m_ntc_motor_beta, &send_index);
-
-	send_packet_no_fwd(send_buffer, send_index);
-}
-
-void bldc_interface_set_appconf(const app_configuration *appconf) {
-	int32_t send_index = 0;
-	fwd_can_append(send_buffer, &send_index);
-	send_buffer[send_index++] = COMM_SET_APPCONF;
-	send_buffer[send_index++] = appconf->controller_id;
-	buffer_append_uint32(send_buffer, appconf->timeout_msec, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->timeout_brake_current, &send_index);
-	send_buffer[send_index++] = appconf->send_can_status;
-	buffer_append_uint16(send_buffer, appconf->send_can_status_rate_hz, &send_index);
-	send_buffer[send_index++] = appconf->can_baud_rate;
-
-	send_buffer[send_index++] = appconf->app_to_use;
-
-	send_buffer[send_index++] = appconf->app_ppm_conf.ctrl_type;
-	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.pid_max_erpm, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.hyst, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.pulse_start, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.pulse_end, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.pulse_center, &send_index);
-	send_buffer[send_index++] = appconf->app_ppm_conf.median_filter;
-	send_buffer[send_index++] = appconf->app_ppm_conf.safe_start;
-	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.throttle_exp, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.throttle_exp_brake, &send_index);
-	send_buffer[send_index++] = appconf->app_ppm_conf.throttle_exp_mode;
-	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.ramp_time_pos, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.ramp_time_neg, &send_index);
-	send_buffer[send_index++] = appconf->app_ppm_conf.multi_esc;
-	send_buffer[send_index++] = appconf->app_ppm_conf.tc;
-	buffer_append_float32_auto(send_buffer, appconf->app_ppm_conf.tc_max_diff, &send_index);
-
-	send_buffer[send_index++] = appconf->app_adc_conf.ctrl_type;
-	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.hyst, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.voltage_start, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.voltage_end, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.voltage_center, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.voltage2_start, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.voltage2_end, &send_index);
-	send_buffer[send_index++] = appconf->app_adc_conf.use_filter;
-	send_buffer[send_index++] = appconf->app_adc_conf.safe_start;
-	send_buffer[send_index++] = appconf->app_adc_conf.cc_button_inverted;
-	send_buffer[send_index++] = appconf->app_adc_conf.rev_button_inverted;
-	send_buffer[send_index++] = appconf->app_adc_conf.voltage_inverted;
-	send_buffer[send_index++] = appconf->app_adc_conf.voltage2_inverted;
-	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.throttle_exp, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.throttle_exp_brake, &send_index);
-	send_buffer[send_index++] = appconf->app_adc_conf.throttle_exp_mode;
-	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.ramp_time_pos, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.ramp_time_neg, &send_index);
-	send_buffer[send_index++] = appconf->app_adc_conf.multi_esc;
-	send_buffer[send_index++] = appconf->app_adc_conf.tc;
-	buffer_append_float32_auto(send_buffer, appconf->app_adc_conf.tc_max_diff, &send_index);
-	buffer_append_uint16(send_buffer, appconf->app_adc_conf.update_rate_hz, &send_index);
-
-	buffer_append_uint32(send_buffer, appconf->app_uart_baudrate, &send_index);
-
-	send_buffer[send_index++] = appconf->app_chuk_conf.ctrl_type;
-	buffer_append_float32_auto(send_buffer, appconf->app_chuk_conf.hyst, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_chuk_conf.ramp_time_pos, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_chuk_conf.ramp_time_neg, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_chuk_conf.stick_erpm_per_s_in_cc, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_chuk_conf.throttle_exp, &send_index);
-	buffer_append_float32_auto(send_buffer, appconf->app_chuk_conf.throttle_exp_brake, &send_index);
-	send_buffer[send_index++] = appconf->app_chuk_conf.throttle_exp_mode;
-	send_buffer[send_index++] = appconf->app_chuk_conf.multi_esc;
-	send_buffer[send_index++] = appconf->app_chuk_conf.tc;
-	buffer_append_float32_auto(send_buffer, appconf->app_chuk_conf.tc_max_diff, &send_index);
-
-	send_buffer[send_index++] = appconf->app_nrf_conf.speed;
-	send_buffer[send_index++] = appconf->app_nrf_conf.power;
-	send_buffer[send_index++] = appconf->app_nrf_conf.crc_type;
-	send_buffer[send_index++] = appconf->app_nrf_conf.retry_delay;
-	send_buffer[send_index++] = appconf->app_nrf_conf.retries;
-	send_buffer[send_index++] = appconf->app_nrf_conf.channel;
-	memcpy(send_buffer + send_index, appconf->app_nrf_conf.address, 3);
-	send_index += 3;
-	send_buffer[send_index++] = appconf->app_nrf_conf.send_crc_ack;
-
-	send_packet_no_fwd(send_buffer, send_index);
-}
-
 void bldc_interface_set_chuck_data(const chuck_data *chuckdata) {
   int32_t send_index = 0;
   fwd_can_append(send_buffer, &send_index);
@@ -838,20 +341,6 @@ void bldc_interface_get_values(void) {
 	send_packet_no_fwd(send_buffer, send_index);
 }
 
-void bldc_interface_get_mcconf(void) {
-	int32_t send_index = 0;
-	fwd_can_append(send_buffer, &send_index);
-	send_buffer[send_index++] = COMM_GET_MCCONF;
-	send_packet_no_fwd(send_buffer, send_index);
-}
-
-void bldc_interface_get_appconf(void) {
-	int32_t send_index = 0;
-	fwd_can_append(send_buffer, &send_index);
-	send_buffer[send_index++] = COMM_GET_APPCONF;
-	send_packet_no_fwd(send_buffer, send_index);
-}
-
 void bldc_interface_get_decoded_ppm(void) {
 	int32_t send_index = 0;
 	fwd_can_append(send_buffer, &send_index);
@@ -874,15 +363,6 @@ void bldc_interface_get_decoded_chuk(void) {
 }
 
 // Other functions
-void bldc_interface_detect_motor_param(float current, float min_rpm, float low_duty) {
-	int32_t send_index = 0;
-	fwd_can_append(send_buffer, &send_index);
-	send_buffer[send_index++] = COMM_DETECT_MOTOR_PARAM;
-	buffer_append_float32(send_buffer, current, 1000.0, &send_index);
-	buffer_append_float32(send_buffer, min_rpm, 1000.0, &send_index);
-	buffer_append_float32(send_buffer, low_duty, 1000.0, &send_index);
-	send_packet_no_fwd(send_buffer, send_index);
-}
 
 void bldc_interface_reboot(void) {
 	int32_t send_index = 0;
