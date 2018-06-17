@@ -30,7 +30,7 @@
 
 // Settings
 #define UART_BAUDRATE			115200
-#define SERIAL_RX_BUFFER_SIZE	1024
+#define SERIAL_RX_BUFFER_SIZE	256
 
 // Private functions
 static void send_packet(unsigned char *data, unsigned int len);
@@ -94,11 +94,11 @@ static void send_packet(unsigned char *data, unsigned int len) {
 
 	// Copy this data to a new buffer in case the provided one is re-used
 	// after this function returns.
-	static uint8_t buffer[PACKET_MAX_PL_LEN + 5];
-	memcpy(buffer, data, len);
+	//static uint8_t buffer[PACKET_MAX_PL_LEN + 5];
+	//memcpy(buffer, data, len);
 
 	// Send the data over UART
-	Serial1.write(buffer, len);
+	Serial1.write(data, len);
 }
 
 void comm_uart_init(void) {

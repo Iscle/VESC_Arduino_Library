@@ -36,11 +36,6 @@ static int32_t can_fwd_vesc = -1;
 static mc_values values;
 static int fw_major;
 static int fw_minor;
-static float rotor_pos;
-static float detect_cycle_int_limit;
-static float detect_coupling_k;
-static signed char detect_hall_table[8];
-static signed char detect_hall_res;
 static float dec_ppm;
 static float dec_ppm_len;
 static float dec_adc;
@@ -57,9 +52,7 @@ static void(*forward_func)(unsigned char *data, unsigned int len) = 0;
 
 // Function pointers for received data
 static void(*rx_value_func)(mc_values *values) = 0;
-static void(*rx_printf_func)(char *str) = 0;
 static void(*rx_fw_func)(int major, int minor) = 0;
-static void(*rx_rotor_pos_func)(float pos) = 0;
 static void(*rx_dec_ppm_func)(float val, float ms) = 0;
 static void(*rx_dec_adc_func)(float val, float voltage) = 0;
 static void(*rx_dec_chuk_func)(float val) = 0;
@@ -221,16 +214,8 @@ void bldc_interface_set_rx_value_func(void(*func)(mc_values *values)) {
 	rx_value_func = func;
 }
 
-void bldc_interface_set_rx_printf_func(void(*func)(char *str)) {
-	rx_printf_func = func;
-}
-
 void bldc_interface_set_rx_fw_func(void(*func)(int major, int minor)) {
 	rx_fw_func = func;
-}
-
-void bldc_interface_set_rx_rotor_pos_func(void(*func)(float pos)) {
-	rx_rotor_pos_func = func;
 }
 
 void bldc_interface_set_rx_dec_ppm_func(void(*func)(float val, float ms)) {
@@ -260,7 +245,7 @@ void bldc_interface_set_duty_cycle(float dutyCycle) {
 	int32_t send_index = 0;
 	fwd_can_append(send_buffer, &send_index);
 	send_buffer[send_index++] = COMM_SET_DUTY;
-	buffer_append_float32(send_buffer, dutyCycle, 100000.0, &send_index);
+	buffer_append_float32_auto(send_buffer, dutyCycle, &send_index);
 	send_packet_no_fwd(send_buffer, send_index);
 }
 
@@ -268,7 +253,7 @@ void bldc_interface_set_current(float current) {
 	int32_t send_index = 0;
 	fwd_can_append(send_buffer, &send_index);
 	send_buffer[send_index++] = COMM_SET_CURRENT;
-	buffer_append_float32(send_buffer, current, 1000.0, &send_index);
+	buffer_append_float32_auto(send_buffer, current, &send_index);
 	send_packet_no_fwd(send_buffer, send_index);
 }
 
@@ -276,15 +261,15 @@ void bldc_interface_set_current_brake(float current) {
 	int32_t send_index = 0;
 	fwd_can_append(send_buffer, &send_index);
 	send_buffer[send_index++] = COMM_SET_CURRENT_BRAKE;
-	buffer_append_float32(send_buffer, current, 1000.0, &send_index);
+	buffer_append_float32_auto(send_buffer, current, &send_index);
 	send_packet_no_fwd(send_buffer, send_index);
 }
 
-void bldc_interface_set_rpm(int rpm) {
+void bldc_interface_set_rpm(float rpm) {
 	int32_t send_index = 0;
 	fwd_can_append(send_buffer, &send_index);
 	send_buffer[send_index++] = COMM_SET_RPM;
-	buffer_append_int32(send_buffer, rpm, &send_index);
+	buffer_append_float32_auto(send_buffer, rpm, &send_index);
 	send_packet_no_fwd(send_buffer, send_index);
 }
 
@@ -292,7 +277,7 @@ void bldc_interface_set_pos(float pos) {
 	int32_t send_index = 0;
 	fwd_can_append(send_buffer, &send_index);
 	send_buffer[send_index++] = COMM_SET_POS;
-	buffer_append_float32(send_buffer, pos, 1000000.0, &send_index);
+	buffer_append_float32_auto(send_buffer, pos, &send_index);
 	send_packet_no_fwd(send_buffer, send_index);
 }
 
@@ -320,9 +305,9 @@ void bldc_interface_set_chuck_data(const chuck_data *chuckdata) {
   send_buffer[send_index++] = chuckdata -> js_y;
   buffer_append_bool(send_buffer, chuckdata -> bt_c, &send_index);
   buffer_append_bool(send_buffer, chuckdata -> bt_z, &send_index);
-  buffer_append_int32(send_buffer, chuckdata -> acc_x, &send_index);
-  buffer_append_int32(send_buffer, chuckdata -> acc_y, &send_index);
-  buffer_append_int32(send_buffer, chuckdata -> acc_z, &send_index);
+  buffer_append_int16(send_buffer, chuckdata -> acc_x, &send_index);
+  buffer_append_int16(send_buffer, chuckdata -> acc_y, &send_index);
+  buffer_append_int16(send_buffer, chuckdata -> acc_z, &send_index);
   send_packet_no_fwd(send_buffer, send_index);
 }
 

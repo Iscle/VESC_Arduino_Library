@@ -37,35 +37,6 @@ typedef enum {
 } mc_state;
 
 typedef enum {
-	PWM_MODE_NONSYNCHRONOUS_HISW = 0, // This mode is not recommended
-	PWM_MODE_SYNCHRONOUS, // The recommended and most tested mode
-	PWM_MODE_BIPOLAR // Some glitches occasionally, can kill MOSFETs
-} mc_pwm_mode;
-
-typedef enum {
-	COMM_MODE_INTEGRATE = 0,
-	COMM_MODE_DELAY
-} mc_comm_mode;
-
-typedef enum {
-	SENSOR_MODE_SENSORLESS = 0,
-	SENSOR_MODE_SENSORED,
-	SENSOR_MODE_HYBRID
-} mc_sensor_mode;
-
-typedef enum {
-	FOC_SENSOR_MODE_SENSORLESS = 0,
-	FOC_SENSOR_MODE_ENCODER,
-	FOC_SENSOR_MODE_HALL
-} mc_foc_sensor_mode;
-
-typedef enum {
-	MOTOR_TYPE_BLDC = 0,
-	MOTOR_TYPE_DC,
-	MOTOR_TYPE_FOC
-} mc_motor_type;
-
-typedef enum {
 	FAULT_CODE_NONE = 0,
 	FAULT_CODE_OVER_VOLTAGE,
 	FAULT_CODE_UNDER_VOLTAGE,
@@ -114,7 +85,16 @@ typedef enum {
 	COMM_FORWARD_CAN,
 	COMM_SET_CHUCK_DATA,
 	COMM_CUSTOM_APP_DATA,
-	COMM_NRF_START_PAIRING
+	COMM_NRF_START_PAIRING,
+	SPACER0,
+	SPACER1,
+	SPACER2,
+	SPACER3,
+	SPACER4,
+	COMM_SET_SPEED_MODE,
+	COMM_GET_SPEED_MODE,
+	COMM_SET_CURRENT_CONF_AS_DEFAULT,
+	COMM_SET_MOTOR_TYPE
 } COMM_PACKET_ID;
 
 // Logged fault data

@@ -30,9 +30,7 @@ void bldc_interface_process_packet(unsigned char *data, unsigned int len);
 
 // Function pointer setters
 void bldc_interface_set_rx_value_func(void(*func)(mc_values *values));
-void bldc_interface_set_rx_printf_func(void(*func)(char *str));
 void bldc_interface_set_rx_fw_func(void(*func)(int major, int minor));
-void bldc_interface_set_rx_rotor_pos_func(void(*func)(float pos));
 void bldc_interface_set_rx_dec_ppm_func(void(*func)(float val, float ms));
 void bldc_interface_set_rx_dec_adc_func(void(*func)(float val, float voltage));
 void bldc_interface_set_rx_dec_chuk_func(void(*func)(float val));
@@ -42,7 +40,7 @@ void bldc_interface_terminal_cmd(char* cmd); // Not used in this library
 void bldc_interface_set_duty_cycle(float dutyCycle);
 void bldc_interface_set_current(float current);
 void bldc_interface_set_current_brake(float current);
-void bldc_interface_set_rpm(int rpm);
+void bldc_interface_set_rpm(float rpm);
 void bldc_interface_set_pos(float pos);
 void bldc_interface_set_handbrake(float current);
 void bldc_interface_set_servo_pos(float pos);
