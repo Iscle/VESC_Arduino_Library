@@ -6,3 +6,5 @@ This library uses Serial1 to communicate with the VESC, and leaves Serial unused
 ## *THIS IS A WORK IN PROGRESS!*
 
 You can try this library, most things work, but I can't guarantee anything.
+
+To use this library, include "VESC.h" in your arduino sketch!
